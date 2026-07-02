@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AXIS 시간표 보드</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green:#0E5C3F; --green-d:#0A4530;
+    --paper:#F5F1E8; --paper-2:#EDE7D8; --paper-3:#E3DCC9;
+    --ink:#1F2420; --ink-2:#5B6058; --line:#D6CEBB;
+    --dy:#1F6FB2; --dy-t:#D6E6F2;   /* 한도윤 */
+    --sa:#C1662F; --sa-t:#F2E1D3;   /* 한수아 */
+    --warn:#C0392B;
+    --slotH:26px; --gutter:52px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans KR',sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px 16px 60px}
+  header.top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  header.top h1{font-size:19px;font-weight:700;letter-spacing:-.02em;margin:0;color:var(--green)}
+  header.top .sub{font-size:12px;color:var(--ink-2);font-family:'IBM Plex Mono',monospace}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  button,select,input{font-family:inherit}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 12px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;transition:.12s}
+  .btn:hover{border-color:var(--green);color:var(--green)}
+  .btn.primary{background:var(--green);color:#fff;border-color:var(--green)}
+  .btn.primary:hover{background:var(--green-d);color:#fff}
+  .btn.ghost{background:transparent}
+  .spacer{flex:1}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);align-items:center;margin-bottom:10px}
+  .swatch{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:12px;height:12px;border-radius:3px;display:inline-block}
+  .dot.dy{background:var(--dy)} .dot.sa{background:var(--sa)}
+  .dot.conf{background:var(--green)}
+  .dot.tent{background:#fff;border:1.5px dashed var(--green)}
+
+  /* board */
+  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:#fff}
+  .board{min-width:960px;position:relative}
+  .headrow{display:grid;grid-template-columns:var(--gutter) repeat(7,1fr);position:sticky;top:0;z-index:5;background:var(--paper-2);border-bottom:1px solid var(--line)}
+  .headrow .cell{padding:6px 0;text-align:center;border-left:1px solid var(--line)}
+  .headrow .cell.g{border-left:none}
+  .headrow .day{font-weight:600;font-size:13px}
+  .headrow .day.sat{color:var(--dy)} .headrow .day.sun{color:var(--warn)}
+  .lanes{display:flex;font-size:10px;color:var(--ink-2);margin-top:2px;font-family:'IBM Plex Mono',monospace}
+  .lanes span{flex:1}
+  .grid{display:grid;grid-template-columns:var(--gutter) repeat(7,1fr);position:relative}
+  .gutter{border-right:1px solid var(--line)}
+  .ghour{height:calc(var(--slotH)*2);font-size:11px;color:var(--ink-2);font-family:'IBM Plex Mono',monospace;text-align:right;padding-right:6px;position:relative;top:-7px}
+  .daycol{position:relative;border-left:1px solid var(--line)}
+  .daycol .lanemid{position:absolute;top:0;bottom:0;left:50%;width:1px;background:var(--paper-3)}
+  .hline{position:absolute;left:0;right:0;height:1px;background:var(--paper-2)}
+  .hline.hour{background:var(--line)}
+  .ev{position:absolute;border-radius:6px;padding:3px 5px;font-size:11px;line-height:1.2;overflow:hidden;cursor:grab;user-select:none;color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+  .ev .t{font-weight:600;display:block;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+  .ev .tm{font-size:9px;opacity:.85;font-family:'IBM Plex Mono',monospace}
+  .ev.dy{background:var(--dy)} .ev.sa{background:var(--sa)}
+  .ev.tent{background:repeating-linear-gradient(45deg,rgba(255,255,255,.18) 0 6px,transparent 6px 12px);border:1.5px dashed rgba(255,255,255,.9)}
+  .ev.tent.dy{background-color:var(--dy)} .ev.tent.sa{background-color:var(--sa)}
+  .ev.locked{cursor:default}
+  .ev.locked::after{content:"🔒";position:absolute;top:2px;right:3px;font-size:9px}
+  .ev.conflict{outline:2px solid var(--warn);outline-offset:-2px}
+  .ev.dragging{opacity:.55;z-index:50}
+  .ev.dim{opacity:.28}
+  .ev .ok{position:absolute;top:2px;right:3px;width:17px;height:17px;border:none;border-radius:4px;background:var(--green);color:#fff;font-size:11px;font-weight:700;line-height:17px;text-align:center;cursor:pointer;padding:0;opacity:.92}
+  .ev .ok:hover{opacity:1;background:var(--green-d)}
+
+  /* modal */
+  .mask{position:fixed;inset:0;background:rgba(20,25,20,.45);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
+  .mask.on{display:flex}
+  .modal{background:var(--paper);border:1px solid var(--line);border-radius:12px;width:100%;max-width:380px;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+  .modal h3{margin:0 0 14px;font-size:15px;color:var(--green)}
+  .fld{margin-bottom:11px}
+  .fld label{display:block;font-size:11px;color:var(--ink-2);margin-bottom:4px;font-weight:600}
+  .fld input,.fld select{width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:13px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .seg{display:flex;gap:6px}
+  .seg button{flex:1;padding:8px;border:1px solid var(--line);background:#fff;border-radius:7px;font-size:12px;cursor:pointer;font-weight:500}
+  .seg button.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .seg.wrap7{flex-wrap:wrap}
+  .seg.wrap7 button{flex:1 0 auto;min-width:38px;padding:8px 0}
+  .modal .foot{display:flex;gap:8px;margin-top:16px}
+  .modal .foot .spacer{flex:1}
+  .msg{font-size:12px;color:var(--warn);min-height:16px;margin-top:4px}
+  .hint{font-size:11px;color:var(--ink-2);margin-top:8px;line-height:1.5}
+  .cnt{font-size:12px;color:var(--ink-2);font-family:'IBM Plex Mono',monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>AXIS 시간표 보드</h1>
+    <span class="sub">08:00–24:00 · 월–일 · 한도윤 / 한수아</span>
+  </header>
+
+  <div class="bar">
+    <button class="btn primary" id="addBtn">+ 일정 추가</button>
+    <button class="btn" id="findBtn">빈 슬롯 찾기</button>
+    <button class="btn" id="confAllBtn">임시 전체 확정</button>
+    <select class="btn" id="viewSel">
+      <option value="all">전체 표시</option>
+      <option value="dy">한도윤만</option>
+      <option value="sa">한수아만</option>
+      <option value="conf">확정만</option>
+      <option value="tent">임시만</option>
+    </select>
+    <span class="spacer"></span>
+    <span class="cnt" id="cnt"></span>
+    <button class="btn ghost" id="expBtn">내보내기</button>
+    <button class="btn ghost" id="impBtn">불러오기</button>
+    <input type="file" id="impFile" accept="application/json" style="display:none">
+  </div>
+
+  <div class="legend">
+    <span class="swatch"><span class="dot dy"></span>한도윤</span>
+    <span class="swatch"><span class="dot sa"></span>한수아</span>
+    <span class="swatch"><span class="dot conf"></span>확정(고정·잠김)</span>
+    <span class="swatch"><span class="dot tent"></span>임시(이동 가능)</span>
+    <span class="swatch" style="color:var(--warn)">■ 빨강 테두리 = 같은 사람 시간 겹침</span>
+  </div>
+
+  <div class="scroll">
+    <div class="board" id="board">
+      <div class="headrow" id="headrow"></div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- edit modal -->
+<div class="mask" id="mask">
+  <div class="modal">
+    <h3 id="mTitle">일정 추가</h3>
+    <div class="fld">
+      <label>내용</label>
+      <input id="fTitle" placeholder="예: 도윤 수학 / 수아 영어 문법">
+    </div>
+    <div class="fld">
+      <label>사람</label>
+      <div class="seg" id="fPerson">
+        <button data-v="dy">한도윤</button>
+        <button data-v="sa">한수아</button>
+      </div>
+    </div>
+    <div class="fld">
+      <label>요일 <span style="font-weight:400;color:var(--ink-2)">— 여러 개 선택 시 같은 수업 반복 생성</span></label>
+      <div class="seg wrap7" id="fDays"></div>
+    </div>
+    <div class="row2">
+      <div class="fld"><label>시작</label><select id="fStart"></select></div>
+      <div class="fld"><label>종료</label><select id="fEnd"></select></div>
+    </div>
+    <div class="fld">
+      <label>상태</label>
+      <div class="seg" id="fStatus">
+        <button data-v="tent">임시</button>
+        <button data-v="conf">확정(잠금)</button>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="fld"><label>개강날</label><input id="fDate" type="date"></div>
+      <div class="fld"><label>수강료</label><input id="fFee" inputmode="numeric" placeholder="예: 220,000"></div>
+    </div>
+    <div class="fld">
+      <label>메모</label>
+      <input id="fMemo" placeholder="교재·결제일·특이사항 등">
+    </div>
+    <div class="msg" id="fMsg"></div>
+    <div class="foot">
+      <button class="btn ghost" id="delBtn" style="color:var(--warn);border-color:var(--warn)">삭제</button>
+      <span class="spacer"></span>
+      <button class="btn" id="cancelBtn">취소</button>
+      <button class="btn primary" id="saveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- find-slot modal -->
+<div class="mask" id="fmask">
+  <div class="modal">
+    <h3>빈 슬롯 찾기</h3>
+    <div class="fld">
+      <label>사람</label>
+      <div class="seg" id="qPerson">
+        <button data-v="dy">한도윤</button>
+        <button data-v="sa">한수아</button>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="fld">
+        <label>길이(분)</label>
+        <select id="qDur"><option>30</option><option selected>60</option><option>90</option><option>120</option></select>
+      </div>
+      <div class="fld">
+        <label>요일</label>
+        <select id="qDay"></select>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="fld"><label>가능 시작</label><select id="qFrom"></select></div>
+      <div class="fld"><label>가능 종료</label><select id="qTo"></select></div>
+    </div>
+    <div class="hint">확정 일정과 겹치지 않는 가장 이른 빈 칸에 <b>임시</b> 블록을 놓는다. 임시 일정끼리 겹치면 빨강 테두리로 표시되고 드래그로 옮길 수 있다.</div>
+    <div class="msg" id="qMsg"></div>
+    <div class="foot">
+      <span class="spacer"></span>
+      <button class="btn" id="qCancel">취소</button>
+      <button class="btn primary" id="qGo">배치</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DAYS=['월','화','수','목','금','토','일'];
+const START_MIN=480, END_MIN=1440, STEP=30;   // 08:00 ~ 24:00, 30분
+const SLOTS=(END_MIN-START_MIN)/STEP;         // 32
+const SLOT_H=26;
+let events=[];
+let editId=null;
+
+/* ---------- storage (localStorage: 로컬 파일에서도 유지) ---------- */
+const LS_KEY='axis:events:v2';
+function load(){
+  try{
+    const raw=localStorage.getItem(LS_KEY);
+    if(raw!==null){ events=JSON.parse(raw); render(); return; }
+  }catch(e){ /* localStorage 불가 환경 */ }
+  events=seed(); save();
+}
+function save(){
+  render();
+  try{ localStorage.setItem(LS_KEY,JSON.stringify(events)); }
+  catch(e){ console.warn('save failed',e); }
+}
+function seed(){
+  return [
+  {
+    "id": "es290dqx",
+    "person": "sa",
+    "title": "도윤 과학",
+    "day": 1,
+    "start": 930,
+    "end": 1050,
+    "status": "conf"
+  },
+  {
+    "person": "sa",
+    "title": "황소수학",
+    "start": 900,
+    "end": 1140,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "evgfrdeu",
+    "day": 1
+  },
+  {
+    "person": "sa",
+    "title": "황소수학",
+    "start": 900,
+    "end": 1140,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "el6hrzc6",
+    "day": 3
+  },
+  {
+    "person": "sa",
+    "title": "피아이",
+    "start": 1140,
+    "end": 1320,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "ev6v25hf",
+    "day": 0
+  },
+  {
+    "person": "sa",
+    "title": "피아이",
+    "start": 1140,
+    "end": 1320,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "eh0jzqxa",
+    "day": 2
+  },
+  {
+    "person": "sa",
+    "title": "기파랑",
+    "start": 900,
+    "end": 1050,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "evvxfha2",
+    "day": 4
+  },
+  {
+    "person": "sa",
+    "title": "K팝 댄스",
+    "start": 1140,
+    "end": 1200,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "e9mwy738",
+    "day": 4
+  },
+  {
+    "person": "sa",
+    "title": "오케스트라",
+    "start": 480,
+    "end": 570,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "egyewf5p",
+    "day": 5
+  },
+  {
+    "person": "sa",
+    "title": "플로어엑스",
+    "start": 930,
+    "end": 990,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "e9hduvqx",
+    "day": 0
+  },
+  {
+    "person": "sa",
+    "title": "플로어엑스",
+    "start": 960,
+    "end": 1020,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "eahehcxw",
+    "day": 5
+  },
+  {
+    "person": "sa",
+    "title": "눈높이",
+    "start": 930,
+    "end": 960,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "eiib0ndq",
+    "day": 0
+  },
+  {
+    "person": "dy",
+    "title": "다원국어",
+    "start": 600,
+    "end": 780,
+    "status": "conf",
+    "date": "",
+    "fee": "165000",
+    "memo": "7월 11일은 일요일 4:00 수업으로 듣기",
+    "id": "egvpt3yl",
+    "day": 5
+  },
+  {
+    "person": "dy",
+    "title": "실력정석 공수1",
+    "start": 1140,
+    "end": 1380,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "eptbjmhj",
+    "day": 0
+  },
+  {
+    "person": "dy",
+    "title": "실력정석 공수1",
+    "start": 1140,
+    "end": 1380,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "e6mljkd9",
+    "day": 1
+  },
+  {
+    "person": "dy",
+    "title": "실력정석 공수1",
+    "start": 1140,
+    "end": 1380,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "e4i2n7a9",
+    "day": 2
+  },
+  {
+    "person": "dy",
+    "title": "실력정석 공수1",
+    "start": 1140,
+    "end": 1380,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "e76pc1wi",
+    "day": 3
+  },
+  {
+    "person": "dy",
+    "title": "실력정석 공수1",
+    "start": 1140,
+    "end": 1380,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "e4g39f1p",
+    "day": 4
+  },
+  {
+    "person": "dy",
+    "title": "영어문법",
+    "start": 960,
+    "end": 1080,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "ea1clo8l",
+    "day": 0
+  },
+  {
+    "person": "dy",
+    "title": "영어문법",
+    "start": 960,
+    "end": 1080,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "e8hos3sz",
+    "day": 1
+  },
+  {
+    "person": "dy",
+    "title": "물리브릿지",
+    "start": 960,
+    "end": 1080,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "ehr9fgzy",
+    "day": 2
+  },
+  {
+    "person": "dy",
+    "title": "물리브릿지",
+    "start": 960,
+    "end": 1080,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "ecwu5oun",
+    "day": 3
+  },
+  {
+    "person": "dy",
+    "title": "물리브릿지",
+    "start": 960,
+    "end": 1080,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "eemph0f1",
+    "day": 4
+  },
+  {
+    "person": "dy",
+    "title": "플라즈마물리",
+    "start": 810,
+    "end": 1050,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "8월1일부터",
+    "id": "e4x41u2c",
+    "day": 5
+  },
+  {
+    "person": "sa",
+    "title": "방과후바이올린",
+    "start": 810,
+    "end": 900,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "eb6zakt4",
+    "day": 2
+  },
+  {
+    "person": "dy",
+    "title": "국어숙제",
+    "start": 540,
+    "end": 660,
+    "status": "conf",
+    "date": "",
+    "fee": "",
+    "memo": "",
+    "id": "erx9ia8f",
+    "day": 6
+  }
+];
+}
+function id(){return 'e'+Math.random().toString(36).slice(2,9)}
+
+/* ---------- helpers ---------- */
+function fmt(m){const h=Math.floor(m/60),mm=m%60;return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0')}
+function overlap(a,b){return a.person===b.person&&a.day===b.day&&a.start<b.end&&b.start<a.end}
+function conflictIds(){
+  const s=new Set();
+  for(let i=0;i<events.length;i++)for(let j=i+1;j<events.length;j++){
+    if(overlap(events[i],events[j])){s.add(events[i].id);s.add(events[j].id);}
+  }
+  return s;
+}
+
+/* ---------- render ---------- */
+function buildStatic(){
+  const hr=document.getElementById('headrow');
+  hr.innerHTML='<div class="cell g"></div>'+DAYS.map((d,i)=>{
+    const cls=i===5?'sat':i===6?'sun':'';
+    return `<div class="cell"><div class="day ${cls}">${d}</div><div class="lanes"><span>도윤</span><span>수아</span></div></div>`;
+  }).join('');
+
+  const g=document.getElementById('grid');
+  let gut='<div class="gutter">';
+  for(let m=START_MIN;m<END_MIN;m+=60) gut+=`<div class="ghour">${fmt(m)}</div>`;
+  gut+='</div>';
+  let cols='';
+  for(let d=0;d<7;d++){
+    let lines='';
+    for(let s=0;s<=SLOTS;s++){
+      const hour=(s%2===0);
+      lines+=`<div class="hline ${hour?'hour':''}" style="top:${s*SLOT_H}px"></div>`;
+    }
+    cols+=`<div class="daycol" data-day="${d}" style="height:${SLOTS*SLOT_H}px"><div class="lanemid"></div>${lines}</div>`;
+  }
+  g.innerHTML=gut+cols;
+}
+
+function render(){
+  document.querySelectorAll('.ev').forEach(e=>e.remove());
+  const view=document.getElementById('viewSel').value;
+  const conf=conflictIds();
+  const cols=[...document.querySelectorAll('.daycol')];
+  events.forEach(ev=>{
+    const col=cols[ev.day]; if(!col) return;
+    const top=(ev.start-START_MIN)/STEP*SLOT_H;
+    const h=(ev.end-ev.start)/STEP*SLOT_H;
+    const laneL=ev.person==='dy'?'1%':'51%';
+    const el=document.createElement('div');
+    el.className='ev '+ev.person+(ev.status==='conf'?' locked':' tent')+(conf.has(ev.id)?' conflict':'');
+    // view filter -> dim
+    let show=true;
+    if(view==='dy') show=ev.person==='dy';
+    else if(view==='sa') show=ev.person==='sa';
+    else if(view==='conf') show=ev.status==='conf';
+    else if(view==='tent') show=ev.status==='tent';
+    if(!show) el.classList.add('dim');
+    el.style.top=top+'px'; el.style.height=(h-2)+'px';
+    el.style.left=laneL; el.style.width='47%';
+    el.dataset.id=ev.id;
+    const notes=[];
+    if(ev.date) notes.push('개강 '+ev.date);
+    if(ev.fee) notes.push('수강료 '+ev.fee);
+    if(ev.memo) notes.push(ev.memo);
+    const hasNote=notes.length>0;
+    if(hasNote) el.title=`${ev.title}\n${fmt(ev.start)}–${fmt(ev.end)}\n`+notes.join('\n');
+    el.innerHTML=`<span class="t">${hasNote?'📝 ':''}${esc(ev.title||'(무제)')}</span><span class="tm">${fmt(ev.start)}–${fmt(ev.end)}</span>`;
+    col.appendChild(el);
+    if(ev.status==='tent'){
+      const ok=document.createElement('button');
+      ok.className='ok'; ok.textContent='✓'; ok.title='확정으로 전환(잠금)';
+      const stop=e=>e.stopPropagation();
+      ok.addEventListener('mousedown',stop);
+      ok.addEventListener('touchstart',stop,{passive:true});
+      ok.addEventListener('click',e=>{
+        e.stopPropagation();
+        const t=events.find(x=>x.id===ev.id);
+        if(t){t.status='conf';save();}
+      });
+      el.appendChild(ok);
+    }
+    el.addEventListener('mousedown',startDrag);
+    el.addEventListener('touchstart',startDrag,{passive:false});
+    el.addEventListener('click',e=>{ if(!moved) openEdit(ev.id); });
+  });
+  const c=events.length, cf=conf.size;
+  document.getElementById('cnt').textContent=`${c}건${cf?` · 충돌 ${cf/2|0}쌍`:''}`;
+}
+function esc(s){return (s+'').replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))}
+
+/* ---------- drag (tentative only, cross-day) ---------- */
+let drag=null, moved=false;
+function evtXY(e){return e.touches?{x:e.touches[0].clientX,y:e.touches[0].clientY}:{x:e.clientX,y:e.clientY}}
+function startDrag(e){
+  const el=e.currentTarget, ev=events.find(x=>x.id===el.dataset.id);
+  if(!ev||ev.status==='conf') return;      // 확정=잠김
+  e.preventDefault(); moved=false;
+  const p=evtXY(e);
+  drag={ev,el,dur:ev.end-ev.start,sx:p.x,sy:p.y};
+  el.classList.add('dragging');
+  window.addEventListener('mousemove',onDrag);
+  window.addEventListener('touchmove',onDrag,{passive:false});
+  window.addEventListener('mouseup',endDrag);
+  window.addEventListener('touchend',endDrag);
+}
+function onDrag(e){
+  if(!drag) return;
+  const p=evtXY(e);
+  if(Math.abs(p.x-drag.sx)>4||Math.abs(p.y-drag.sy)>4) moved=true;
+  const cols=[...document.querySelectorAll('.daycol')];
+  // day + lane from x
+  let day=drag.ev.day, lane=drag.ev.person;
+  for(let d=0;d<cols.length;d++){
+    const r=cols[d].getBoundingClientRect();
+    if(p.x>=r.left&&p.x<r.right){ day=d; lane=(p.x-r.left)<r.width/2?'dy':'sa'; break; }
+  }
+  const colR=cols[day].getBoundingClientRect();
+  let slot=Math.round((p.y-colR.top)/SLOT_H);
+  let start=START_MIN+slot*STEP;
+  start=Math.max(START_MIN,Math.min(start,END_MIN-drag.dur));
+  drag.ev.day=day; drag.ev.person=lane; drag.ev.start=start; drag.ev.end=start+drag.dur;
+  render(); drag.el=document.querySelector(`.ev[data-id="${drag.ev.id}"]`);
+  if(drag.el) drag.el.classList.add('dragging');
+}
+function endDrag(){
+  if(!drag) return;
+  window.removeEventListener('mousemove',onDrag);
+  window.removeEventListener('touchmove',onDrag);
+  window.removeEventListener('mouseup',endDrag);
+  window.removeEventListener('touchend',endDrag);
+  drag=null; save();
+  setTimeout(()=>moved=false,50);
+}
+
+/* ---------- edit modal ---------- */
+function fillTimeSelect(sel,from){
+  sel.innerHTML='';
+  for(let m=START_MIN;m<=END_MIN;m+=STEP){
+    const o=document.createElement('option');o.value=m;o.textContent=fmt(m);sel.appendChild(o);
+  }
+}
+function initSelects(){
+  const qDay=document.getElementById('qDay');
+  const fDays=document.getElementById('fDays');
+  DAYS.forEach((d,i)=>{
+    qDay.add(new Option(d+'요일',i));
+    const b=document.createElement('button');b.dataset.v=i;b.textContent=d;
+    b.onclick=()=>b.classList.toggle('on');
+    fDays.appendChild(b);
+  });
+  qDay.add(new Option('아무 요일','any'));
+  fillTimeSelect(document.getElementById('fStart'));
+  fillTimeSelect(document.getElementById('fEnd'));
+  fillTimeSelect(document.getElementById('qFrom')); document.getElementById('qFrom').value=START_MIN;
+  fillTimeSelect(document.getElementById('qTo')); document.getElementById('qTo').value=END_MIN;
+}
+function setDays(arr){document.querySelectorAll('#fDays button').forEach(b=>b.classList.toggle('on',arr.includes(+b.dataset.v)))}
+function getDays(){return [...document.querySelectorAll('#fDays button.on')].map(b=>+b.dataset.v)}
+function seg(groupId,val){
+  document.querySelectorAll('#'+groupId+' button').forEach(b=>b.classList.toggle('on',b.dataset.v===val));
+}
+function segVal(groupId){const b=document.querySelector('#'+groupId+' button.on');return b?b.dataset.v:null}
+
+function openEdit(eid){
+  editId=eid;
+  const mask=document.getElementById('mask');
+  document.getElementById('fMsg').textContent='';
+  if(eid){
+    const ev=events.find(x=>x.id===eid);
+    document.getElementById('mTitle').textContent='일정 편집';
+    document.getElementById('fTitle').value=ev.title;
+    seg('fPerson',ev.person); seg('fStatus',ev.status);
+    setDays([ev.day]);
+    document.getElementById('fStart').value=ev.start;
+    document.getElementById('fEnd').value=ev.end;
+    document.getElementById('fDate').value=ev.date||'';
+    document.getElementById('fFee').value=ev.fee||'';
+    document.getElementById('fMemo').value=ev.memo||'';
+    document.getElementById('delBtn').style.display='';
+  }else{
+    document.getElementById('mTitle').textContent='일정 추가';
+    document.getElementById('fTitle').value='';
+    seg('fPerson','dy'); seg('fStatus','tent');
+    setDays([0]);
+    document.getElementById('fStart').value=900;
+    document.getElementById('fEnd').value=960;
+    document.getElementById('fDate').value='';
+    document.getElementById('fFee').value='';
+    document.getElementById('fMemo').value='';
+    document.getElementById('delBtn').style.display='none';
+  }
+  mask.classList.add('on');
+}
+function closeEdit(){document.getElementById('mask').classList.remove('on');editId=null}
+
+document.getElementById('saveBtn').onclick=()=>{
+  const title=document.getElementById('fTitle').value.trim();
+  const person=segVal('fPerson'), status=segVal('fStatus');
+  const days=getDays();
+  const start=+document.getElementById('fStart').value;
+  const end=+document.getElementById('fEnd').value;
+  const msg=document.getElementById('fMsg');
+  if(!days.length){msg.textContent='요일을 1개 이상 선택하라.';return;}
+  if(end<=start){msg.textContent='종료가 시작보다 늦어야 한다.';return;}
+  const base={person,title,start,end,status,
+    date:document.getElementById('fDate').value,
+    fee:document.getElementById('fFee').value.trim(),
+    memo:document.getElementById('fMemo').value.trim()};
+  if(editId){
+    const i=events.findIndex(x=>x.id===editId);
+    events[i]={...events[i],...base,day:days[0]};
+    for(let k=1;k<days.length;k++) events.push({...base,id:id(),day:days[k]});
+  }else{
+    days.forEach(d=>events.push({...base,id:id(),day:d}));
+  }
+  closeEdit(); save();
+};
+document.getElementById('delBtn').onclick=()=>{
+  events=events.filter(x=>x.id!==editId); closeEdit(); save();
+};
+document.getElementById('cancelBtn').onclick=closeEdit;
+document.getElementById('addBtn').onclick=()=>openEdit(null);
+document.getElementById('confAllBtn').onclick=()=>{
+  const t=events.filter(e=>e.status==='tent');
+  if(!t.length){document.getElementById('fMsg');return;}
+  if(confirm(`임시 ${t.length}건을 모두 확정(잠금)한다.`)){
+    events.forEach(e=>{if(e.status==='tent')e.status='conf';});
+    save();
+  }
+};
+document.querySelectorAll('#fPerson button').forEach(b=>b.onclick=()=>seg('fPerson',b.dataset.v));
+document.querySelectorAll('#fStatus button').forEach(b=>b.onclick=()=>seg('fStatus',b.dataset.v));
+
+/* ---------- find slot ---------- */
+document.getElementById('findBtn').onclick=()=>{
+  seg('qPerson','dy'); document.getElementById('qMsg').textContent='';
+  document.getElementById('fmask').classList.add('on');
+};
+document.querySelectorAll('#qPerson button').forEach(b=>b.onclick=()=>seg('qPerson',b.dataset.v));
+document.getElementById('qCancel').onclick=()=>document.getElementById('fmask').classList.remove('on');
+document.getElementById('qGo').onclick=()=>{
+  const person=segVal('qPerson');
+  const dur=+document.getElementById('qDur').value;
+  const dayV=document.getElementById('qDay').value;
+  const from=+document.getElementById('qFrom').value;
+  const to=+document.getElementById('qTo').value;
+  const msg=document.getElementById('qMsg');
+  const days=dayV==='any'?[0,1,2,3,4,5,6]:[+dayV];
+  // 확정 일정만 장애물로 취급
+  const busy=events.filter(e=>e.person===person&&e.status==='conf');
+  for(const d of days){
+    const obs=busy.filter(e=>e.day===d).sort((a,b)=>a.start-b.start);
+    for(let s=from;s+dur<=to;s+=STEP){
+      const e=s+dur;
+      if(!obs.some(o=>s<o.end&&o.start<e)){
+        events.push({id:id(),person,title:'(빈칸 배치)',day:d,start:s,end:e,status:'tent'});
+        document.getElementById('fmask').classList.remove('on'); save();
+        return;
+      }
+    }
+  }
+  msg.textContent='조건에 맞는 빈 칸이 없다. 길이·요일·시간 범위를 넓혀라.';
+};
+
+/* ---------- export / import ---------- */
+document.getElementById('expBtn').onclick=()=>{
+  const blob=new Blob([JSON.stringify(events,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='axis_schedule.json';a.click();
+};
+document.getElementById('impBtn').onclick=()=>document.getElementById('impFile').click();
+document.getElementById('impFile').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{events=JSON.parse(r.result);save();}catch(x){alert('불러오기 실패: 형식 오류');}};
+  r.readAsText(f);
+};
+document.getElementById('viewSel').onchange=render;
+
+/* ---------- close modal on backdrop ---------- */
+[['mask',closeEdit],['fmask',()=>document.getElementById('fmask').classList.remove('on')]].forEach(([id2,fn])=>{
+  document.getElementById(id2).addEventListener('mousedown',e=>{if(e.target.id===id2)fn();});
+});
+
+buildStatic(); initSelects(); load();
+</script>
+</body>
+</html>
