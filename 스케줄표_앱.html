@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>학습 스케줄표 · 수학 영어 물리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#0E5C3F; --green-deep:#0A4530; --green-soft:#EAF2ED;
+  --paper:#F7F2E7; --card:#FFFFFF; --ink:#23302A; --muted:#8B8474;
+  --line:#E4DCC9; --gold:#B8862B; --gold-soft:#FBF3E1; --gold-deep:#8A6516;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans KR',sans-serif;background:var(--paper);color:var(--ink);padding:24px 16px 64px}
+.wrap{max-width:960px;margin:0 auto}
+
+.brand{font-family:'Fraunces',serif;font-weight:700;font-size:13px;letter-spacing:.22em;color:var(--green);margin-bottom:10px}
+h1{font-size:26px;font-weight:700;letter-spacing:-.02em}
+.sub{color:var(--muted);font-size:13.5px;margin-top:6px}
+.sub b{color:var(--ink);font-weight:600}
+
+/* ── subject tabs ── */
+.tabs{display:flex;gap:8px;margin:18px 0 14px;flex-wrap:wrap}
+.tab{flex:1;min-width:140px;background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:12px 14px;cursor:pointer;text-align:left;font-family:inherit;transition:border-color .12s}
+.tab:hover{border-color:var(--muted)}
+.tab .t-name{font-weight:700;font-size:15px}
+.tab .t-pct{font-family:'Fraunces',serif;font-weight:700;font-size:15px;color:var(--muted);float:right}
+.tab .t-bar{height:6px;background:var(--green-soft);border-radius:99px;overflow:hidden;margin-top:9px}
+.tab .t-bar i{display:block;height:100%;width:0;background:var(--green);border-radius:99px;transition:width .3s}
+.tab.on{background:var(--green);border-color:var(--green)}
+.tab.on .t-name{color:#fff}
+.tab.on .t-pct{color:rgba(255,255,255,.85)}
+.tab.on .t-bar{background:rgba(255,255,255,.25)}
+.tab.on .t-bar i{background:#fff}
+
+/* ── board ── */
+.board{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:0 0 22px;
+  display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+.subline{width:100%;color:var(--muted);font-size:13px;margin:-2px 0 2px}
+.subline b{color:var(--ink);font-weight:600}
+.stat{min-width:96px}
+.stat .num{font-family:'Fraunces',serif;font-size:26px;font-weight:700;color:var(--green);line-height:1}
+.stat .num small{font-size:14px;color:var(--muted);font-weight:600}
+.stat .lab{font-size:11.5px;color:var(--muted);margin-top:4px;letter-spacing:.04em}
+.barbox{flex:1;min-width:220px}
+.bar{height:10px;background:var(--green-soft);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--green);border-radius:99px;transition:width .35s ease}
+.bar-lab{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:6px}
+.reset{margin-left:auto;background:none;border:1px solid var(--line);color:var(--muted);font-family:inherit;
+  font-size:12px;padding:7px 12px;border-radius:8px;cursor:pointer}
+.reset:hover{border-color:var(--muted);color:var(--ink)}
+
+/* ── table ── */
+.scroll{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px}
+table{width:100%;min-width:760px;border-collapse:collapse;font-size:13.5px}
+thead th{position:sticky;top:0;background:var(--card);color:var(--muted);font-size:11.5px;font-weight:600;
+  letter-spacing:.06em;text-align:left;padding:12px 10px;border-bottom:2px solid var(--green);z-index:2}
+thead th.c{text-align:center}
+
+tr.unit td{background:var(--green);color:#fff;padding:9px 12px;font-weight:600;font-size:13px}
+tr.unit .day{font-family:'Fraunces',serif;font-weight:700;letter-spacing:.08em;font-size:12px;
+  background:rgba(255,255,255,.16);border-radius:6px;padding:2px 8px;margin-right:10px}
+tr.unit .meta{float:right;font-weight:500;font-size:12px;opacity:.85}
+tr.unit .done-badge{float:right;margin-left:12px;font-size:11.5px;font-weight:700;background:#fff;color:var(--green);
+  border-radius:99px;padding:2px 9px}
+tr.unit .done-badge.zero{background:rgba(255,255,255,.16);color:#fff;font-weight:500}
+
+tbody td{padding:9px 10px;border-bottom:1px solid #F0EADB;vertical-align:middle}
+td.id{font-family:'Fraunces',serif;font-weight:600;color:var(--muted);white-space:nowrap;width:52px}
+td.pg,td.tm{white-space:nowrap;color:var(--muted);font-size:12.5px}
+td.c{text-align:center}
+.k{display:inline-block;font-size:11px;font-weight:600;border-radius:6px;padding:2px 8px;white-space:nowrap}
+.k.c{background:var(--green-soft);color:var(--green)}
+.k.p{background:var(--gold-soft);color:var(--gold-deep)}
+tr.lesson.full{background:#F4F8F5}
+tr.lesson.full td.id{color:var(--green)}
+tr.lesson.full td.title{color:var(--green-deep)}
+
+input[type=date]{font-family:inherit;font-size:12px;color:var(--ink);border:1px solid var(--line);
+  border-radius:7px;padding:4px 6px;background:#FDFBF6;width:128px}
+input[type=date]:focus{outline:2px solid var(--green-soft);border-color:var(--green)}
+
+input[type=checkbox]{appearance:none;width:20px;height:20px;border:1.8px solid var(--line);border-radius:6px;
+  cursor:pointer;vertical-align:middle;position:relative;background:#fff;transition:all .12s}
+input[type=checkbox]:hover{border-color:var(--muted)}
+input[type=checkbox]:checked::after{content:'';position:absolute;left:5.5px;top:2px;width:5px;height:10px;
+  border:solid #fff;border-width:0 2.2px 2.2px 0;transform:rotate(45deg)}
+input.c1:checked{background:var(--gold);border-color:var(--gold)}
+input.c2:checked{background:var(--green);border-color:var(--green)}
+
+.foot{color:var(--muted);font-size:11.5px;margin-top:14px;text-align:right}
+@media (max-width:640px){
+  body{padding:16px 10px 48px}
+  h1{font-size:21px}
+  .board{padding:14px;gap:12px}
+  .reset{margin-left:0}
+  .tab{min-width:100px;padding:10px 12px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">AXISOLVE</div>
+  <h1>학습 스케줄표</h1>
+  <div class="sub">수학 · 영어 · 물리 &nbsp;|&nbsp; 총 <b>176차시</b> · 5,964분 (99시간 24분)</div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="board">
+    <div class="subline" id="subline"></div>
+    <div class="stat"><div class="num" id="s1">0</div><div class="lab">체크 1 완료</div></div>
+    <div class="stat"><div class="num" id="s2">0</div><div class="lab">체크 2 완료</div></div>
+    <div class="barbox">
+      <div class="bar"><i id="barFill"></i></div>
+      <div class="bar-lab"><span>진행률</span><span id="pct">0%</span></div>
+    </div>
+    <button class="reset" id="resetBtn">기록 초기화</button>
+  </div>
+
+  <div class="scroll">
+  <table>
+    <thead id="thead"></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  </div>
+  <div class="foot">체크·날짜는 이 브라우저에 자동 저장됩니다. 과목별 개별 스케줄표 파일과 저장이 공유됩니다(같은 사이트에서 열 때).</div>
+</div>
+
+<script>
+const SUBJECTS = {
+  math: {
+    name: '수학', mode: 'pages', key: 'math-schedule-19d-v1',
+    sub: '1일 1단원 · <b>19일 완성</b> | 19단원 · 85차시 · 3,129분 (52시간 9분)',
+    data: [{"day": 1, "unit": "1. 다항식의 연산", "pages": "p.9~22", "total": 148, "lessons": [{"id": "1-1", "title": "§1. 다항식의 연산", "pages": "p.9~15", "min": 50}, {"id": "1-2", "title": "§1. 다항식의 연산 §2. 곱셈 공식", "pages": "p.16~21", "min": 34}, {"id": "1-3", "title": "연습문제 1~5번", "pages": "p.22", "min": 21}, {"id": "1-4", "title": "연습문제 6~11번", "pages": "p.22", "min": 43}]}, {"day": 2, "unit": "2. 인수분해", "pages": "p.23~38", "total": 146, "lessons": [{"id": "2-1", "title": "§1. 인수분해의 기본 공식", "pages": "p.23~28", "min": 40}, {"id": "2-2", "title": "§1. 인수분해의 기본 공식 §2. 인수분해의 활용 §3. 다항식의 최대공약수와 최소공배수", "pages": "p.29~37", "min": 41}, {"id": "2-3", "title": "연습문제 1~4번", "pages": "p.38", "min": 41}, {"id": "2-4", "title": "연습문제 5~10번", "pages": "p.38", "min": 24}]}, {"day": 3, "unit": "3. 항등식과 미정계수법", "pages": "p.39~49", "total": 119, "lessons": [{"id": "3-1", "title": "§1. 항등식의 성질과 미정계수법", "pages": "p.39~45", "min": 35}, {"id": "3-2", "title": "§2. 다항식의 나눗셈과 항등식", "pages": "p.46~48", "min": 20}, {"id": "3-3", "title": "연습문제 1~5번", "pages": "p.49", "min": 29}, {"id": "3-4", "title": "연습문제 6~11번", "pages": "p.49", "min": 35}]}, {"day": 4, "unit": "4. 나머지 정리", "pages": "p.50~62", "total": 182, "lessons": [{"id": "4-1", "title": "§1. 나머지 정리", "pages": "p.50~56", "min": 42}, {"id": "4-2", "title": "§2. 인수 정리와 고차식의 인수분해", "pages": "p.57~60", "min": 23}, {"id": "4-3", "title": "연습문제 1~9번", "pages": "p.61", "min": 45}, {"id": "4-4", "title": "연습문제 10~16번", "pages": "p.62", "min": 42}, {"id": "4-5", "title": "연습문제 17~22번", "pages": "p.62", "min": 30}]}, {"day": 5, "unit": "5. 실수", "pages": "p.63~84", "total": 213, "lessons": [{"id": "5-1", "title": "§1. 실수", "pages": "p.63~67", "min": 35}, {"id": "5-2", "title": "§2. 정수의 분류", "pages": "p.68~70", "min": 30}, {"id": "5-3", "title": "§3. 제곱근, 세제곱근과 그 연산 §4. 무리수가 서로 같을 조건", "pages": "p.71~82", "min": 54}, {"id": "5-4", "title": "연습문제 1~8번", "pages": "p.83", "min": 39}, {"id": "5-5", "title": "연습문제 9~13번", "pages": "p.83~84", "min": 24}, {"id": "5-6", "title": "연습문제 14~19번", "pages": "p.84", "min": 31}]}, {"day": 6, "unit": "6. 복소수", "pages": "p.85~95", "total": 181, "lessons": [{"id": "6-1", "title": "§1. 허수와 복소수 §2. 복소수의 연산", "pages": "p.85~90", "min": 45}, {"id": "6-2", "title": "§2. 복소수의 연산", "pages": "p.91~93", "min": 23}, {"id": "6-3", "title": "연습문제 1~8번", "pages": "p.94", "min": 47}, {"id": "6-4", "title": "연습문제 9~16번", "pages": "p.94~95", "min": 39}, {"id": "6-5", "title": "연습문제 17~21번", "pages": "p.95", "min": 27}]}, {"day": 7, "unit": "7. 일차·이차방정식", "pages": "p.96~106", "total": 124, "lessons": [{"id": "7-1", "title": "§1. 일차방정식의 해법", "pages": "p.96~99", "min": 30}, {"id": "7-2", "title": "§2. 이차방정식의 해법", "pages": "p.100~105", "min": 35}, {"id": "7-3", "title": "연습문제 1~5번", "pages": "p.106", "min": 28}, {"id": "7-4", "title": "연습문제 6~10번", "pages": "p.106", "min": 31}]}, {"day": 8, "unit": "8. 이차방정식의 판별식", "pages": "p.107~114", "total": 96, "lessons": [{"id": "8-1", "title": "§1. 이차방정식의 판별식 §2. 판별식의 활용", "pages": "p.107~113", "min": 38}, {"id": "8-2", "title": "연습문제 1~4번", "pages": "p.114", "min": 19}, {"id": "8-3", "title": "연습문제 5~10번", "pages": "p.114", "min": 39}]}, {"day": 9, "unit": "9. 이차방정식의 근과 계수의 관계", "pages": "p.115~129", "total": 178, "lessons": [{"id": "9-1", "title": "§1. 이차방정식의 근과 계수의 관계", "pages": "p.115~122", "min": 42}, {"id": "9-2", "title": "§2. 이차방정식의 정수근 §3. 이차방정식의 실근의 부호", "pages": "p.123~127", "min": 35}, {"id": "9-3", "title": "연습문제 1~10번", "pages": "p.128", "min": 39}, {"id": "9-4", "title": "연습문제 11~17번", "pages": "p.129", "min": 34}, {"id": "9-5", "title": "연습문제 18~22번", "pages": "p.129", "min": 28}]}, {"day": 10, "unit": "10. 이차방정식과 이차함수", "pages": "p.130~144", "total": 210, "lessons": [{"id": "10-1", "title": "§1. 이차방정식과 이차함수의 관계 §2. 포물선과 직선의 위치 관계", "pages": "p.130~138", "min": 49}, {"id": "10-2", "title": "§2. 포물선과 직선의 위치 관계 §3. 이차방정식의 근의 분리", "pages": "p.139~142", "min": 36}, {"id": "10-3", "title": "연습문제 1~8번", "pages": "p.143", "min": 36}, {"id": "10-4", "title": "연습문제 9~15번", "pages": "p.143~144", "min": 41}, {"id": "10-5", "title": "연습문제 16~21번", "pages": "p.144", "min": 48}]}, {"day": 11, "unit": "11. 최대와 최소", "pages": "p.145~156", "total": 186, "lessons": [{"id": "11-1", "title": "§1. 이차함수의 최대와 최소 §2. 제한된 범위에서의 최대와 최소", "pages": "p.145~151", "min": 41}, {"id": "11-2", "title": "§3. 판별식을 이용하는 최대와 최소", "pages": "p.152~154", "min": 27}, {"id": "11-3", "title": "연습문제 1~7번", "pages": "p.155", "min": 47}, {"id": "11-4", "title": "연습문제 8~13번", "pages": "p.155~156", "min": 35}, {"id": "11-5", "title": "연습문제 14~18번", "pages": "p.156", "min": 36}]}, {"day": 12, "unit": "12. 삼차방정식과 사차방정식", "pages": "p.157~169", "total": 186, "lessons": [{"id": "12-1", "title": "§1. 삼차방정식과 사차방정식의 해법", "pages": "p.157~163", "min": 44}, {"id": "12-2", "title": "§2. 삼차방정식의 근과 계수의 관계", "pages": "p.164~167", "min": 25}, {"id": "12-3", "title": "연습문제 1~8번", "pages": "p.168", "min": 37}, {"id": "12-4", "title": "연습문제 9~15번", "pages": "p.168~169", "min": 45}, {"id": "12-5", "title": "연습문제 16~20번", "pages": "p.169", "min": 35}]}, {"day": 13, "unit": "13. 연립방정식", "pages": "p.170~185", "total": 229, "lessons": [{"id": "13-1", "title": "§1. 연립일차방정식의 해법 §2. 연립이차방정식의 해법", "pages": "p.170~176", "min": 36}, {"id": "13-2", "title": "§2. 연립이차방정식의 해법 §3. 공통근 §4. 부정방정식의 해법", "pages": "p.177~182", "min": 37}, {"id": "13-3", "title": "연습문제 1~9번", "pages": "p.183", "min": 41}, {"id": "13-4", "title": "연습문제 10~18번", "pages": "p.184", "min": 51}, {"id": "13-5", "title": "연습문제 19~30번", "pages": "p.185", "min": 64}]}, {"day": 14, "unit": "14. 일차부등식과 연립일차부등식", "pages": "p.186~199", "total": 118, "lessons": [{"id": "14-1", "title": "§1. 부등식의 성질과 일차부등식의 해법 §2. 연립일차부등식의 해법", "pages": "p.186~194", "min": 41}, {"id": "14-2", "title": "§2. 연립일차부등식의 해법 §3. 여러 가지 부등식", "pages": "p.195~198", "min": 22}, {"id": "14-3", "title": "연습문제 1~5번", "pages": "p.199", "min": 21}, {"id": "14-4", "title": "연습문제 6~9번", "pages": "p.199", "min": 34}]}, {"day": 15, "unit": "15. 이차부등식과 연립이차부등식", "pages": "p.200~215", "total": 176, "lessons": [{"id": "15-1", "title": "§1. 이차부등식의 해법", "pages": "p.200~207", "min": 45}, {"id": "15-2", "title": "§1. 이차부등식의 해법 §2. 연립이차부등식의 해법", "pages": "p.208~213", "min": 32}, {"id": "15-3", "title": "연습문제 1~8번", "pages": "p.214", "min": 33}, {"id": "15-4", "title": "연습문제 9~14번", "pages": "p.214~215", "min": 26}, {"id": "15-5", "title": "연습문제 15~20번", "pages": "p.215", "min": 40}]}, {"day": 16, "unit": "16. 경우의 수", "pages": "p.216~225", "total": 137, "lessons": [{"id": "16-1", "title": "§1. 경우의 수", "pages": "p.216~220", "min": 31}, {"id": "16-2", "title": "§1. 경우의 수", "pages": "p.221~223", "min": 26}, {"id": "16-3", "title": "연습문제 1~7번", "pages": "p.224", "min": 28}, {"id": "16-4", "title": "연습문제 8~14번", "pages": "p.224~225", "min": 52}]}, {"day": 17, "unit": "17. 순열과 조합", "pages": "p.226~246", "total": 206, "lessons": [{"id": "17-1", "title": "§1. 순열", "pages": "p.226~234", "min": 49}, {"id": "17-2", "title": "§2. 조합", "pages": "p.235~240", "min": 45}, {"id": "17-3", "title": "§2. 조합", "pages": "p.241~244", "min": 26}, {"id": "17-4", "title": "연습문제 1~9번", "pages": "p.245~246", "min": 45}, {"id": "17-5", "title": "연습문제 10~16번", "pages": "p.246", "min": 41}]}, {"day": 18, "unit": "18. 행렬의 뜻", "pages": "p.247~254", "total": 66, "lessons": [{"id": "18-1", "title": "§1. 행렬의 뜻 §2. 서로 같은 행렬", "pages": "p.247~253", "min": 36}, {"id": "18-2", "title": "연습문제 1~6번", "pages": "p.254", "min": 30}]}, {"day": 19, "unit": "19. 행렬의 연산", "pages": "p.255~281", "total": 228, "lessons": [{"id": "19-1", "title": "§1. 행렬의 덧셈, 뺄셈, 실수배 §2. 행렬의 곱셈", "pages": "p.255~269", "min": 55}, {"id": "19-2", "title": "§2. 행렬의 곱셈", "pages": "p.270~278", "min": 50}, {"id": "19-3", "title": "연습문제 1~13번", "pages": "p.279~280", "min": 58}, {"id": "19-4", "title": "연습문제 14~21번", "pages": "p.280~281", "min": 41}, {"id": "19-5", "title": "연습문제 22~26번", "pages": "p.281", "min": 24}]}]
+  },
+  eng: {
+    name: '영어', mode: 'pages', key: 'eng-gi3-schedule-12d-v1',
+    sub: 'Grammar Inside Lv.3 · 1일 1챕터 · <b>12일 완성</b> | 12챕터 · 45강 · 1,306분 (21시간 46분)',
+    data: [{"day": 1, "unit": "Chapter 1. 시제", "pages": "p.12~21", "total": 88, "lessons": [{"id": "1강", "title": "Unit 01 현재완료", "pages": "p.12~13", "min": 28}, {"id": "2강", "title": "Unit 02 과거완료, 미래완료", "pages": "p.14~15", "min": 24}, {"id": "3강", "title": "Grammar for Writing [서술형] · Review Test [단원평가]", "pages": "p.16~21", "min": 36}]}, {"day": 2, "unit": "Chapter 2. 조동사", "pages": "p.24~33", "total": 78, "lessons": [{"id": "4강", "title": "Unit 01 can, may, must, should", "pages": "p.24~25", "min": 17}, {"id": "5강", "title": "Unit 02 had better, ought to, used to, 조동사+have v-ed", "pages": "p.26~27", "min": 23}, {"id": "6강", "title": "Grammar for Writing [서술형] · Review Test [단원평가]", "pages": "p.28~33", "min": 38}]}, {"day": 3, "unit": "Chapter 3. 수동태", "pages": "p.36~47", "total": 121, "lessons": [{"id": "7강", "title": "Unit 01 수동태의 의미와 형태", "pages": "p.36~37", "min": 30}, {"id": "8강", "title": "Unit 02 4형식, 5형식 문장의 수동태", "pages": "p.38~39", "min": 33}, {"id": "9강", "title": "Unit 03 주의해야 할 수동태", "pages": "p.40~41", "min": 19}, {"id": "10강", "title": "Grammar for Writing [서술형] · Review Test [단원평가]", "pages": "p.42~47", "min": 39}]}, {"day": 4, "unit": "Chapter 4. to부정사", "pages": "p.50~65", "total": 168, "lessons": [{"id": "11강", "title": "Unit 01 명사적 용법의 to부정사", "pages": "p.50~51", "min": 20}, {"id": "12강", "title": "Unit 02 형용사적 용법, 부사적 용법의 to부정사", "pages": "p.52~53", "min": 20}, {"id": "13강", "title": "Unit 03 to부정사의 의미상의 주어, 시제, 태", "pages": "p.54~55", "min": 27}, {"id": "14강", "title": "Unit 04 목적격 보어로 쓰이는 부정사", "pages": "p.56~57", "min": 42}, {"id": "15강", "title": "Unit 05 to부정사 구문, 독립부정사", "pages": "p.58~59", "min": 16}, {"id": "16강", "title": "Grammar for Writing [서술형] · Review Test [단원평가]", "pages": "p.60~65", "min": 43}]}, {"day": 5, "unit": "Chapter 5. 동명사", "pages": "p.68~77", "total": 96, "lessons": [{"id": "17강", "title": "Unit 01 동명사의 역할", "pages": "p.68~69", "min": 23}, {"id": "18강", "title": "Unit 02 동명사 vs. to부정사", "pages": "p.70~71", "min": 33}, {"id": "19강", "title": "Grammar for Writing [서술형] · Review Test [단원평가]", "pages": "p.72~77", "min": 40}]}, {"day": 6, "unit": "Chapter 6. 분사", "pages": "p.80~91", "total": 115, "lessons": [{"id": "20강", "title": "Unit 01 현재분사 vs. 과거분사", "pages": "p.80~81", "min": 25}, {"id": "21강", "title": "Unit 02 분사구문", "pages": "p.82~83", "min": 20}, {"id": "22강", "title": "Unit 03 여러 가지 분사구문", "pages": "p.84~85", "min": 24}, {"id": "23강", "title": "Grammar for Writing [서술형] · Review Test [단원평가]", "pages": "p.86~91", "min": 46}]}, {"day": 7, "unit": "Chapter 7. 비교", "pages": "p.94~103", "total": 71, "lessons": [{"id": "24강", "title": "Unit 01 원급, 비교급, 최상급", "pages": "p.94~95", "min": 19}, {"id": "25강", "title": "Unit 02 여러 가지 비교구문", "pages": "p.96~97", "min": 18}, {"id": "26강", "title": "Grammar for Writing [서술형] · Review Test [단원평가]", "pages": "p.98~103", "min": 34}]}, {"day": 8, "unit": "Chapter 8. 접속사", "pages": "p.106~115", "total": 86, "lessons": [{"id": "27강", "title": "Unit 01 종속 접속사", "pages": "p.106~107", "min": 20}, {"id": "28강", "title": "Unit 02 짝으로 이루어진 접속사, 간접의문문", "pages": "p.108~109", "min": 25}, {"id": "29강", "title": "Grammar for Writing [서술형] · Review Test [단원평가]", "pages": "p.110~115", "min": 41}]}, {"day": 9, "unit": "Chapter 9. 관계사", "pages": "p.118~131", "total": 153, "lessons": [{"id": "30강", "title": "Unit 01 관계대명사", "pages": "p.118~119", "min": 46}, {"id": "31강", "title": "Unit 02 관계부사", "pages": "p.120~121", "min": 24}, {"id": "32강", "title": "Unit 03 주의해야 할 관계사", "pages": "p.122~123", "min": 29}, {"id": "33강", "title": "Unit 04 복합관계사", "pages": "p.124~125", "min": 16}, {"id": "34강", "title": "Grammar for Writing [서술형] · Review Test [단원평가]", "pages": "p.126~131", "min": 38}]}, {"day": 10, "unit": "Chapter 10. 가정법", "pages": "p.134~145", "total": 127, "lessons": [{"id": "35강", "title": "Unit 01 가정법 과거, 가정법 과거완료, 혼합 가정법", "pages": "p.134~135", "min": 38}, {"id": "36강", "title": "Unit 02 I wish, as if, It’s time + 가정법", "pages": "p.136~137", "min": 23}, {"id": "37강", "title": "Unit 03 주의해야 할 가정법", "pages": "p.138~139", "min": 17}, {"id": "38강", "title": "Grammar for Writing [서술형] · Review Test [단원평가]", "pages": "p.140~145", "min": 49}]}, {"day": 11, "unit": "Chapter 11. 일치와 화법", "pages": "p.148~159", "total": 112, "lessons": [{"id": "39강", "title": "Unit 01 수의 일치", "pages": "p.148~149", "min": 19}, {"id": "40강", "title": "Unit 02 시제의 일치", "pages": "p.150~151", "min": 20}, {"id": "41강", "title": "Unit 03 화법", "pages": "p.152~153", "min": 29}, {"id": "42강", "title": "Grammar for Writing [서술형] · Review Test [단원평가]", "pages": "p.154~159", "min": 44}]}, {"day": 12, "unit": "Chapter 12. 특수구문", "pages": "p.162~171", "total": 91, "lessons": [{"id": "43강", "title": "Unit 01 강조, 부정구문, 병렬", "pages": "p.162~163", "min": 27}, {"id": "44강", "title": "Unit 02 도치, 생략, 동격", "pages": "p.164~165", "min": 25}, {"id": "45강", "title": "Grammar for Writing [서술형] · Review Test [단원평가]", "pages": "p.166~171", "min": 39}]}]
+  },
+  phy: {
+    name: '물리', mode: 'kind', key: 'phy-schedule-11d-v1',
+    sub: '중등물리 총정리 · <b>개념+문제풀이 병행</b> · 1일 1주제 | 11주제 · 46강 · 1,529분 (25시간 29분)',
+    data: [{"day": 1, "unit": "운동", "pages": "개념 4강 · 풀이 3강", "total": 254, "lessons": [{"id": "c1", "no": "1강", "kind": "개념", "title": "운동1 - 속도", "min": 41}, {"id": "c2", "no": "2강", "kind": "개념", "title": "운동2 - 가속도", "min": 32}, {"id": "c3", "no": "3강", "kind": "개념", "title": "운동3 - 여러가지 운동1", "min": 33}, {"id": "c4", "no": "4강", "kind": "개념", "title": "운동3 - 여러가지 운동2", "min": 28}, {"id": "p1", "no": "1강", "kind": "풀이", "title": "운동1", "min": 43}, {"id": "p2", "no": "2강", "kind": "풀이", "title": "운동2", "min": 31}, {"id": "p3", "no": "3강", "kind": "풀이", "title": "운동3", "min": 46}]}, {"day": 2, "unit": "힘", "pages": "개념 3강 · 풀이 3강", "total": 177, "lessons": [{"id": "c5", "no": "5강", "kind": "개념", "title": "힘1 - 힘의 정의", "min": 23}, {"id": "c6", "no": "6강", "kind": "개념", "title": "힘2 - 여러가지 힘1", "min": 25}, {"id": "c7", "no": "7강", "kind": "개념", "title": "힘2 - 여러가지 힘2", "min": 28}, {"id": "p4", "no": "4강", "kind": "풀이", "title": "힘1", "min": 33}, {"id": "p5", "no": "5강", "kind": "풀이", "title": "힘2", "min": 30}, {"id": "p6", "no": "6강", "kind": "풀이", "title": "힘3", "min": 38}]}, {"day": 3, "unit": "힘과 운동", "pages": "개념 2강 · 풀이 3강", "total": 153, "lessons": [{"id": "c8", "no": "8강", "kind": "개념", "title": "힘과 운동1 - 뉴턴의 운동 법칙", "min": 34}, {"id": "c9", "no": "9강", "kind": "개념", "title": "힘과 운동2 - 운동 방정식", "min": 27}, {"id": "p7", "no": "7강", "kind": "풀이", "title": "힘과 운동1", "min": 20}, {"id": "p8", "no": "8강", "kind": "풀이", "title": "힘과 운동2", "min": 38}, {"id": "p9", "no": "9강", "kind": "풀이", "title": "힘과 운동3", "min": 34}]}, {"day": 4, "unit": "일과 에너지", "pages": "개념 2강 · 풀이 3강", "total": 185, "lessons": [{"id": "c10", "no": "10강", "kind": "개념", "title": "일 - 일과 일률", "min": 36}, {"id": "c11", "no": "11강", "kind": "개념", "title": "일 - 일과 에너지", "min": 31}, {"id": "p10", "no": "10강", "kind": "풀이", "title": "일1", "min": 36}, {"id": "p11", "no": "11강", "kind": "풀이", "title": "일2", "min": 38}, {"id": "p12", "no": "12강", "kind": "풀이", "title": "에너지", "min": 44}]}, {"day": 5, "unit": "열", "pages": "개념 1강 · 풀이 1강", "total": 80, "lessons": [{"id": "c12", "no": "12강", "kind": "개념", "title": "열과 온도, 열현상", "min": 34}, {"id": "p13", "no": "13강", "kind": "풀이", "title": "열에너지", "min": 46}]}, {"day": 6, "unit": "전기", "pages": "개념 2강 · 풀이 1강", "total": 94, "lessons": [{"id": "c13", "no": "13강", "kind": "개념", "title": "전하와 물질", "min": 27}, {"id": "c14", "no": "14강", "kind": "개념", "title": "대전과 검전기", "min": 32}, {"id": "p14", "no": "14강", "kind": "풀이", "title": "전기", "min": 35}]}, {"day": 7, "unit": "전기 회로", "pages": "개념 2강 · 풀이 2강", "total": 134, "lessons": [{"id": "c15", "no": "15강", "kind": "개념", "title": "전기 회로1", "min": 34}, {"id": "c16", "no": "16강", "kind": "개념", "title": "전기 회로2", "min": 38}, {"id": "p15", "no": "15강", "kind": "풀이", "title": "전기회로1", "min": 35}, {"id": "p16", "no": "16강", "kind": "풀이", "title": "전기회로2", "min": 27}]}, {"day": 8, "unit": "전기 에너지", "pages": "개념 1강 · 풀이 1강", "total": 59, "lessons": [{"id": "c17", "no": "17강", "kind": "개념", "title": "전기 에너지", "min": 27}, {"id": "p17", "no": "17강", "kind": "풀이", "title": "전기에너지", "min": 32}]}, {"day": 9, "unit": "자기", "pages": "개념 2강 · 풀이 2강", "total": 131, "lessons": [{"id": "c18", "no": "18강", "kind": "개념", "title": "자기1 - 자기장", "min": 30}, {"id": "c19", "no": "19강", "kind": "개념", "title": "자기2 - 자기 작용", "min": 29}, {"id": "p18", "no": "18강", "kind": "풀이", "title": "자기1", "min": 33}, {"id": "p19", "no": "19강", "kind": "풀이", "title": "자기2", "min": 39}]}, {"day": 10, "unit": "빛", "pages": "개념 2강 · 풀이 2강", "total": 136, "lessons": [{"id": "c20", "no": "20강", "kind": "개념", "title": "빛1 - 빛의 반사와 합성", "min": 35}, {"id": "c21", "no": "21강", "kind": "개념", "title": "빛2 - 빛의 굴절과 분산", "min": 37}, {"id": "p20", "no": "20강", "kind": "풀이", "title": "빛1", "min": 29}, {"id": "p21", "no": "21강", "kind": "풀이", "title": "빛2", "min": 35}]}, {"day": 11, "unit": "파동", "pages": "개념 2강 · 풀이 2강", "total": 126, "lessons": [{"id": "c22", "no": "22강", "kind": "개념", "title": "파동1 - 파동의 기본", "min": 38}, {"id": "c23", "no": "23강", "kind": "개념", "title": "파동2 - 파동과 소리", "min": 30}, {"id": "p22", "no": "22강", "kind": "풀이", "title": "파동1", "min": 26}, {"id": "p23", "no": "23강", "kind": "풀이", "title": "파동2", "min": 32}]}]
+  }
+};
+
+const states = {};
+for (const id in SUBJECTS) {
+  try { states[id] = JSON.parse(localStorage.getItem(SUBJECTS[id].key)) || {}; }
+  catch(e) { states[id] = {}; }
+}
+const getRec = (sid, lid) => states[sid][lid] || (states[sid][lid] = {d:'', c1:0, c2:0});
+const save = sid => localStorage.setItem(SUBJECTS[sid].key, JSON.stringify(states[sid]));
+const lessonCount = sid => SUBJECTS[sid].data.reduce((a,u) => a + u.lessons.length, 0);
+
+let current = localStorage.getItem('sched-app-tab');
+if (!SUBJECTS[current]) current = 'math';
+
+/* ── tabs ── */
+const tabsEl = document.getElementById('tabs');
+tabsEl.innerHTML = Object.keys(SUBJECTS).map(id => `
+  <button class="tab" data-sid="${id}">
+    <span class="t-name">${SUBJECTS[id].name}</span><span class="t-pct" id="tp-${id}">0%</span>
+    <div class="t-bar"><i id="tb-${id}"></i></div>
+  </button>`).join('');
+tabsEl.addEventListener('click', e => {
+  const b = e.target.closest('.tab');
+  if (!b) return;
+  current = b.dataset.sid;
+  localStorage.setItem('sched-app-tab', current);
+  renderSubject();
+});
+
+function subjectPct(sid) {
+  let n1 = 0, n2 = 0;
+  for (const u of SUBJECTS[sid].data) for (const l of u.lessons) {
+    const r = states[sid][l.id];
+    if (r && r.c1) n1++;
+    if (r && r.c2) n2++;
+  }
+  return { n1, n2, pct: Math.round((n1 + n2) / (lessonCount(sid) * 2) * 100) };
+}
+function refreshTabs() {
+  for (const id in SUBJECTS) {
+    const p = subjectPct(id);
+    document.getElementById('tp-' + id).textContent = p.pct + '%';
+    document.getElementById('tb-' + id).style.width = p.pct + '%';
+  }
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.sid === current));
+}
+
+/* ── subject view ── */
+const thead = document.getElementById('thead');
+const tbody = document.getElementById('tbody');
+
+function renderSubject() {
+  const S = SUBJECTS[current];
+  document.getElementById('subline').innerHTML = S.sub;
+  thead.innerHTML = S.mode === 'kind'
+    ? `<tr><th>차시</th><th class="c">구분</th><th>학습 내용</th><th>시간</th>
+       <th class="c">날짜</th><th class="c">체크 1</th><th class="c">체크 2</th></tr>`
+    : `<tr><th>차시</th><th>학습 내용</th><th>페이지</th><th>시간</th>
+       <th class="c">날짜</th><th class="c">체크 1</th><th class="c">체크 2</th></tr>`;
+
+  const frag = [];
+  for (const u of S.data) {
+    frag.push(`<tr class="unit"><td colspan="7">
+      <span class="day">DAY ${u.day}</span>${u.unit}
+      <span class="done-badge zero" id="badge-${u.day}">0/${u.lessons.length}</span>
+      <span class="meta">${u.pages} · ${u.total}분</span></td></tr>`);
+    for (const l of u.lessons) {
+      const r = getRec(current, l.id);
+      const mid = S.mode === 'kind'
+        ? `<td class="id">${l.no}</td>
+           <td class="c"><span class="k ${l.kind === '개념' ? 'c' : 'p'}">${l.kind}</span></td>
+           <td class="title">${l.title}</td>`
+        : `<td class="id">${l.id}</td>
+           <td class="title">${l.title}</td>
+           <td class="pg">${l.pages}</td>`;
+      frag.push(`<tr class="lesson" data-id="${l.id}" data-day="${u.day}">${mid}
+        <td class="tm">${l.min}분</td>
+        <td class="c"><input type="date" value="${r.d}" data-id="${l.id}"></td>
+        <td class="c"><input type="checkbox" class="c1" data-id="${l.id}" ${r.c1?'checked':''}></td>
+        <td class="c"><input type="checkbox" class="c2" data-id="${l.id}" ${r.c2?'checked':''}></td>
+      </tr>`);
+    }
+  }
+  tbody.innerHTML = frag.join('');
+  refreshBoard();
+}
+
+function refreshBoard() {
+  const S = SUBJECTS[current];
+  const N = lessonCount(current);
+  const perDay = {};
+  for (const u of S.data) perDay[u.day] = 0;
+  let n1 = 0, n2 = 0;
+  for (const u of S.data) for (const l of u.lessons) {
+    const r = getRec(current, l.id);
+    if (r.c1) n1++;
+    if (r.c2) n2++;
+    const row = tbody.querySelector(`tr.lesson[data-id="${l.id}"]`);
+    if (row) row.classList.toggle('full', !!(r.c1 && r.c2));
+    if (r.c1 && r.c2) perDay[u.day]++;
+  }
+  document.getElementById('s1').innerHTML = n1 + `<small>/${N}</small>`;
+  document.getElementById('s2').innerHTML = n2 + `<small>/${N}</small>`;
+  const pct = Math.round((n1 + n2) / (N * 2) * 100);
+  document.getElementById('barFill').style.width = pct + '%';
+  document.getElementById('pct').textContent = pct + '%';
+  for (const u of S.data) {
+    const b = document.getElementById('badge-' + u.day);
+    if (!b) continue;
+    b.textContent = perDay[u.day] + '/' + u.lessons.length;
+    b.classList.toggle('zero', perDay[u.day] === 0);
+  }
+  refreshTabs();
+}
+
+tbody.addEventListener('change', e => {
+  const id = e.target.dataset.id;
+  if (!id) return;
+  const r = getRec(current, id);
+  if (e.target.type === 'date') r.d = e.target.value;
+  else if (e.target.classList.contains('c1')) r.c1 = e.target.checked ? 1 : 0;
+  else if (e.target.classList.contains('c2')) r.c2 = e.target.checked ? 1 : 0;
+  save(current); refreshBoard();
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (!confirm(SUBJECTS[current].name + ' 과목의 체크와 날짜 기록을 초기화할까요?')) return;
+  states[current] = {}; save(current);
+  renderSubject();
+});
+
+renderSubject();
+</script>
+</body>
+</html>
